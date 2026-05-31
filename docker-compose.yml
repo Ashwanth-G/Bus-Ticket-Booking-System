@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: smartbus-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_2026
+      MYSQL_DATABASE: smartbus_db
+      MYSQL_USER: smartbus_user
+      MYSQL_PASSWORD: smartbus_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  backend:
+    build: ./server
+    container_name: smartbus-backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      DATABASE_URL: "mysql://smartbus_user:smartbus_password@db:3306/smartbus_db"
+      JWT_SECRET: "smartbus_super_secret_access_key_2026"
+      JWT_REFRESH_SECRET: "smartbus_super_secret_refresh_key_2026"
+      ADMIN_EMAIL: "admin@smartbus.com"
+      ADMIN_PASSWORD: "Admin@123"
+      NODE_ENV: "production"
+    depends_on:
+      - db
+
+  frontend:
+    build: ./client
+    container_name: smartbus-frontend
+    restart: always
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_URL=http://localhost:5000/api
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:

@@ -1,0 +1,189 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+model User {
+  id              Int              @id @default(autoincrement())
+  uuid            String           @unique @default(uuid())
+  fullName        String
+  email           String           @unique
+  phone           String           @unique
+  password        String
+  role            Role             @default(USER)
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  bookings        Booking[]
+  auditLogs       AuditLog[]
+  reviews         Review[]
+  favoriteRoutes  FavoriteRoute[]
+  searchHistories SearchHistory[]
+  recentlyViewed  RecentlyViewed[]
+
+  @@index([email])
+  @@index([phone])
+}
+
+model Bus {
+  id             Int              @id @default(autoincrement())
+  busNumber      String           @unique
+  busName        String
+  operatorName   String
+  busType        String           // e.g. "AC Sleeper", "Non AC", "Volvo", "Semi Sleeper"
+  totalSeats     Int              @default(40)
+  amenities      String           // comma-separated values (e.g. "WiFi, AC, Charging Point")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  schedules      Schedule[]
+  recentlyViewed RecentlyViewed[]
+}
+
+model Route {
+  id              Int             @id @default(autoincrement())
+  sourceCity      String
+  destinationCity String
+  distance        Float
+  duration        String          // e.g. "05h 30m"
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  schedules       Schedule[]
+  favoriteRoutes  FavoriteRoute[]
+
+  @@unique([sourceCity, destinationCity])
+  @@index([sourceCity, destinationCity])
+}
+
+model Schedule {
+  id             Int             @id @default(autoincrement())
+  busId          Int
+  routeId        Int
+  departureDate  DateTime        // Date only
+  departureTime  String          // e.g. "08:30"
+  arrivalTime    String          // e.g. "14:00"
+  availableSeats Int
+  fare           Float
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  bus            Bus             @relation(fields: [busId], references: [id], onDelete: Cascade)
+  route          Route           @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  bookings       Booking[]
+  reviews        Review[]
+
+  @@index([busId])
+  @@index([routeId])
+  @@index([departureDate])
+}
+
+model Booking {
+  id               Int           @id @default(autoincrement())
+  bookingReference String        @unique // e.g. SBP-2026-00001
+  userId           Int
+  scheduleId       Int
+  bookingStatus    BookingStatus @default(CONFIRMED)
+  totalFare        Float
+  bookedAt         DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schedule         Schedule      @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  passengers       Passenger[]
+  payment          Payment?
+
+  @@index([userId])
+  @@index([scheduleId])
+  @@index([bookingReference])
+}
+
+model Passenger {
+  id             Int      @id @default(autoincrement())
+  bookingId      Int
+  passengerName  String
+  passengerPhone String
+  seatNumber     Int      // Explicit seat selection
+  booking        Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+}
+
+model Payment {
+  id            Int      @id @default(autoincrement())
+  bookingId     Int      @unique
+  amount        Float
+  paymentMethod String   // e.g. "Card", "UPI", "NetBanking"
+  paymentStatus String   // e.g. "PAID", "FAILED"
+  transactionId String   @unique
+  createdAt     DateTime @default(now())
+  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  action    String
+  userId    Int?
+  details   String   @db.Text
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+}
+
+model Review {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  scheduleId Int
+  rating     Int      // 1 to 5 stars
+  comment    String   @db.Text
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([scheduleId])
+}
+
+model FavoriteRoute {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  routeId   Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  route     Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, routeId])
+}
+
+model SearchHistory {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  sourceCity      String
+  destinationCity String
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model RecentlyViewed {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  busId     Int
+  viewedAt  DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bus       Bus      @relation(fields: [busId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, busId])
+}
