@@ -1,3 +1,14 @@
+const getSeatLabel = (seatNumber, busType) => {
+  if (busType && busType.toLowerCase().includes('sleeper')) {
+    if (seatNumber <= 18) {
+      return `l-${seatNumber}`;
+    } else {
+      return `u-${seatNumber - 18}`;
+    }
+  }
+  return seatNumber.toString();
+};
+
 export const sendRegistrationEmail = async (user) => {
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
@@ -27,7 +38,7 @@ export const sendRegistrationEmail = async (user) => {
 
 export const sendBookingConfirmationEmail = async (user, booking) => {
   const passengersHtml = booking.passengers.map(p => 
-    `<li>Passenger: ${p.passengerName} (Seat: ${p.seatNumber})</li>`
+    `<li>Passenger: ${p.passengerName} (Seat: ${getSeatLabel(p.seatNumber, booking.schedule.bus.busType)})</li>`
   ).join('');
 
   const html = `

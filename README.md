@@ -30,7 +30,7 @@ SmartBus Pro is a complete, production-ready, scalable online bus ticket booking
 ## Project Structure
 
 ```
-BTBS/
+Bus-Ticket-Booking-System/
 ├── docker-compose.yml
 ├── README.md
 ├── client/

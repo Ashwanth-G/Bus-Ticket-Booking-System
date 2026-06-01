@@ -6,8 +6,19 @@ import api from '../services/api.js';
 import toast from 'react-hot-toast';
 import { io } from 'socket.io-client';
 import { 
-  Bus, Armchair, ArrowLeft, ArrowRight, UserCheck, CreditCard, TicketCheck, Loader2
+  Bus, Armchair, ArrowLeft, ArrowRight, UserCheck, CreditCard, TicketCheck, Loader2, Bed
 } from 'lucide-react';
+
+export const getSeatLabel = (seatNumber, busType) => {
+  if (busType && busType.toLowerCase().includes('sleeper')) {
+    if (seatNumber <= 18) {
+      return `l-${seatNumber}`;
+    } else {
+      return `u-${seatNumber - 18}`;
+    }
+  }
+  return seatNumber.toString();
+};
 
 export default function SeatSelection() {
   const navigate = useNavigate();
@@ -133,6 +144,40 @@ export default function SeatSelection() {
   const totalSeatsInBus = selectedSchedule.bus.totalSeats;
   const seats = Array.from({ length: totalSeatsInBus }, (_, i) => i + 1);
 
+  const isSleeper = selectedSchedule.bus.busType.toLowerCase().includes('sleeper');
+
+  const renderSleeperBerth = (seatId, deck) => {
+    const isBooked = bookedSeats.includes(seatId);
+    const isSelected = selectedSeats.includes(seatId);
+    const seatLabel = getSeatLabel(seatId, selectedSchedule.bus.busType);
+
+    const isSeaterSleeper = selectedSchedule.bus.busType.toLowerCase().includes('seater') && selectedSchedule.bus.busType.toLowerCase().includes('sleeper');
+    
+    // For Seater/Sleeper buses, the lower deck contains seats (Armchair) and upper deck contains berths (Bed)
+    const isSeatIcon = isSeaterSleeper ? (deck === 'lower') : false;
+
+    return (
+      <button
+        disabled={isBooked}
+        onClick={() => handleSeatClick(seatId)}
+        className={`relative w-11 h-16 rounded-xl flex flex-col items-center justify-center gap-1 transition-all border ${
+          isBooked
+            ? 'bg-rose-500 text-white cursor-not-allowed opacity-80 border-rose-600'
+            : isSelected
+            ? 'bg-brand-600 hover:bg-brand-700 text-white shadow-lg scale-105 border-brand-700'
+            : 'bg-emerald-500 hover:bg-emerald-600 text-white cursor-pointer border-emerald-600'
+        }`}
+      >
+        <span className="text-[10px] font-bold">{seatLabel}</span>
+        {isSeatIcon ? (
+          <Armchair className="h-4.5 w-4.5" />
+        ) : (
+          <Bed className="h-4.5 w-4.5 rotate-90" />
+        )}
+      </button>
+    );
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
       
@@ -187,43 +232,110 @@ export default function SeatSelection() {
               </div>
 
               {/* Interactive Bus Seat Map layout */}
-              <div className="max-w-sm mx-auto bg-slate-100 rounded-[40px] p-6 border-4 border-slate-300 relative shadow-inner">
-                {/* Driver area */}
-                <div className="flex justify-between items-center pb-4 border-b border-slate-200 mb-6">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">Driver Cabin</span>
-                  <div className="w-8 h-8 rounded-full bg-slate-300 border border-slate-400 flex items-center justify-center font-black text-slate-600 text-xs">
-                    ⎔
+              {isSleeper ? (
+                <div className="flex flex-col md:flex-row gap-6 justify-center items-stretch bg-slate-50 border border-slate-200 rounded-3xl p-6">
+                  {/* Lower Berth Section */}
+                  <div className="flex-1 bg-slate-100 rounded-[30px] p-5 border-2 border-slate-300 shadow-inner max-w-[240px] mx-auto relative">
+                    <div className="absolute top-2 left-3 text-[9px] font-black text-slate-450 uppercase tracking-widest">
+                      {selectedSchedule.bus.busType.toLowerCase().includes('seater') && selectedSchedule.bus.busType.toLowerCase().includes('sleeper') 
+                        ? 'Lower Deck (Seater)' 
+                        : 'Lower Deck (Sleeper)'}
+                    </div>
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-200 mb-4 mt-2">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Driver Cabin</span>
+                      <div className="w-6 h-6 rounded-full bg-slate-355 border border-slate-450 flex items-center justify-center font-black text-slate-650 text-[10px]">
+                        ⎔
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-x-2 gap-y-3 justify-items-center">
+                      {Array.from({ length: 6 }).map((_, rowIndex) => {
+                        const row = rowIndex + 1;
+                        const leftSeatId = (row - 1) * 3 + 1;
+                        const rightInnerSeatId = (row - 1) * 3 + 2;
+                        const rightOuterSeatId = (row - 1) * 3 + 3;
+
+                        return (
+                          <React.Fragment key={row}>
+                            {renderSleeperBerth(leftSeatId, 'lower')}
+                            <div className="w-4"></div>
+                            {renderSleeperBerth(rightInnerSeatId, 'lower')}
+                            {renderSleeperBerth(rightOuterSeatId, 'lower')}
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Upper Berth Section */}
+                  <div className="flex-1 bg-slate-100 rounded-[30px] p-5 border-2 border-slate-300 shadow-inner max-w-[240px] mx-auto relative">
+                    <div className="absolute top-2 left-3 text-[9px] font-black text-slate-450 uppercase tracking-widest">
+                      {selectedSchedule.bus.busType.toLowerCase().includes('seater') && selectedSchedule.bus.busType.toLowerCase().includes('sleeper') 
+                        ? 'Upper Deck (Sleeper)' 
+                        : 'Upper Deck (Sleeper)'}
+                    </div>
+                    <div className="flex justify-end items-center pb-2 border-b border-slate-200 mb-4 mt-2">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pr-2">Cabin Roof</span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-x-2 gap-y-3 justify-items-center">
+                      {Array.from({ length: 6 }).map((_, rowIndex) => {
+                        const row = rowIndex + 1;
+                        const leftSeatId = (row - 1) * 3 + 1 + 18;
+                        const rightInnerSeatId = (row - 1) * 3 + 2 + 18;
+                        const rightOuterSeatId = (row - 1) * 3 + 3 + 18;
+
+                        return (
+                          <React.Fragment key={row}>
+                            {renderSleeperBerth(leftSeatId, 'upper')}
+                            <div className="w-4"></div>
+                            {renderSleeperBerth(rightInnerSeatId, 'upper')}
+                            {renderSleeperBerth(rightOuterSeatId, 'upper')}
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
+              ) : (
+                <div className="max-w-sm mx-auto bg-slate-100 rounded-[40px] p-6 border-4 border-slate-300 relative shadow-inner">
+                  {/* Driver area */}
+                  <div className="flex justify-between items-center pb-4 border-b border-slate-200 mb-6">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">Driver Cabin</span>
+                    <div className="w-8 h-8 rounded-full bg-slate-300 border border-slate-400 flex items-center justify-center font-black text-slate-600 text-xs">
+                      ⎔
+                    </div>
+                  </div>
 
-                {/* Grid of seats: 2 + aisle + 2 */}
-                <div className="grid grid-cols-5 gap-3 justify-items-center">
-                  {seats.map((seat) => {
-                    const isBooked = bookedSeats.includes(seat);
-                    const isSelected = selectedSeats.includes(seat);
-                    
-                    let bgClass = 'bg-emerald-500 hover:bg-emerald-600 text-white cursor-pointer';
-                    if (isBooked) bgClass = 'bg-rose-500 text-white cursor-not-allowed opacity-80';
-                    if (isSelected) bgClass = 'bg-brand-600 hover:bg-brand-700 text-white shadow-lg scale-105';
+                  {/* Grid of seats: 2 + aisle + 2 */}
+                  <div className="grid grid-cols-5 gap-3 justify-items-center">
+                    {seats.map((seat) => {
+                      const isBooked = bookedSeats.includes(seat);
+                      const isSelected = selectedSeats.includes(seat);
+                      
+                      const showSpacer = (seat - 1) % 4 === 2;
 
-                    // Insert empty aisle spacer in 3rd column
-                    const showSpacer = (seat - 1) % 4 === 2;
-
-                    return (
-                      <React.Fragment key={seat}>
-                        {showSpacer && <div className="col-span-1"></div>}
-                        <button
-                          disabled={isBooked}
-                          onClick={() => handleSeatClick(seat)}
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs transition-all ${bgClass}`}
-                        >
-                          {seat}
-                        </button>
-                      </React.Fragment>
-                    );
-                  })}
+                      return (
+                        <React.Fragment key={seat}>
+                          {showSpacer && <div className="col-span-1"></div>}
+                          <button
+                            disabled={isBooked}
+                            onClick={() => handleSeatClick(seat)}
+                            className={`w-11 h-11 rounded-xl flex flex-col items-center justify-center gap-0.5 font-bold text-[10px] transition-all border ${
+                              isBooked
+                                ? 'bg-rose-500 text-white cursor-not-allowed opacity-80 border-rose-600'
+                                : isSelected
+                                ? 'bg-brand-600 hover:bg-brand-700 text-white shadow-lg scale-105 border-brand-700'
+                                : 'bg-emerald-500 hover:bg-emerald-600 text-white cursor-pointer border-emerald-600'
+                            }`}
+                          >
+                            <Armchair className="h-4 w-4" />
+                            <span>{seat}</span>
+                          </button>
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Proceed Action */}
               <div className="mt-8 flex justify-between items-center">
@@ -259,7 +371,7 @@ export default function SeatSelection() {
                       <span className="w-5 h-5 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs">
                         {index + 1}
                       </span>
-                      Passenger for Seat <span className="text-brand-600 font-extrabold">{passenger.seatNumber}</span>
+                      Passenger for Seat <span className="text-brand-600 font-extrabold">{getSeatLabel(passenger.seatNumber, selectedSchedule.bus.busType)}</span>
                     </h4>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -414,7 +526,7 @@ export default function SeatSelection() {
               <div className="border-t border-slate-800 pt-4">
                 <div className="flex justify-between items-center text-xs text-slate-400 font-bold mb-1.5">
                   <span>Selected Seats:</span>
-                  <span className="text-white text-sm font-black">{selectedSeats.join(', ') || 'None'}</span>
+                  <span className="text-white text-sm font-black">{selectedSeats.map(seat => getSeatLabel(seat, selectedSchedule.bus.busType)).join(', ') || 'None'}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs text-slate-400 font-bold">
                   <span>Base Fare:</span>

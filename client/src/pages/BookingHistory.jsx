@@ -5,6 +5,17 @@ import {
   Calendar, Star, AlertCircle, Loader2, MessageSquare, X 
 } from 'lucide-react';
 
+const getSeatLabel = (seatNumber, busType) => {
+  if (busType && busType.toLowerCase().includes('sleeper')) {
+    if (seatNumber <= 18) {
+      return `l-${seatNumber}`;
+    } else {
+      return `u-${seatNumber - 18}`;
+    }
+  }
+  return seatNumber.toString();
+};
+
 export default function BookingHistory() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -140,7 +151,7 @@ export default function BookingHistory() {
                     <div className="flex flex-wrap gap-2">
                       {booking.passengers.map(p => (
                         <span key={p.id} className="text-xs bg-slate-50 border border-slate-200 text-slate-550 px-2 py-0.5 rounded-md">
-                          {p.passengerName} (Seat {p.seatNumber})
+                          {p.passengerName} (Seat {getSeatLabel(p.seatNumber, booking.schedule.bus.busType)})
                         </span>
                       ))}
                     </div>

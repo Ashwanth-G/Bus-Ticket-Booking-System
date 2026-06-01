@@ -35,6 +35,8 @@ const bookingSlice = createSlice({
     },
     setBookingConfirmation(state, action) {
       state.bookingReference = action.payload.bookingReference;
+      state.totalFare = action.payload.totalFare;
+      state.passengers = action.payload.passengers;
     },
     resetBookingFlow(state) {
       state.selectedSchedule = null;

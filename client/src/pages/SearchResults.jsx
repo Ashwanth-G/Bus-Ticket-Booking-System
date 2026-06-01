@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { selectSchedule } from '../features/bookingSlice.js';
-import { setSearchResults } from '../features/searchSlice.js';
+import { setSearchQuery, setSearchResults } from '../features/searchSlice.js';
 import api from '../services/api.js';
 import toast from 'react-hot-toast';
 import { 
-  ArrowLeft, ArrowUpDown, Clock, Filter, Sparkles, AlertCircle, ShieldAlert, Heart
+  ArrowLeft, ArrowUpDown, Clock, Filter, Sparkles, AlertCircle, ShieldAlert, Heart,
+  ChevronLeft, ChevronRight, Calendar
 } from 'lucide-react';
 
 export default function SearchResults() {
@@ -126,6 +127,47 @@ export default function SearchResults() {
     }
   };
 
+  const handleDateChange = async (newDateStr) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (newDateStr < todayStr) {
+      toast.error('Cannot select a travel date in the past.');
+      return;
+    }
+
+    try {
+      dispatch(setSearchQuery({ sourceCity, destinationCity, travelDate: newDateStr }));
+      const response = await api.get('/schedules', {
+        params: {
+          sourceCity,
+          destinationCity,
+          travelDate: newDateStr,
+          sortBy,
+          busType: busTypeFilter,
+          departureTimeRange: timeFilter
+        }
+      });
+      dispatch(setSearchResults(response.data));
+    } catch (error) {
+      dispatch(setSearchResults([]));
+    }
+  };
+
+  const handlePrevDay = () => {
+    const d = new Date(travelDate);
+    d.setDate(d.getDate() - 1);
+    const newDateStr = d.toISOString().split('T')[0];
+    handleDateChange(newDateStr);
+  };
+
+  const handleNextDay = () => {
+    const d = new Date(travelDate);
+    d.setDate(d.getDate() + 1);
+    const newDateStr = d.toISOString().split('T')[0];
+    handleDateChange(newDateStr);
+  };
+
+  const todayStr = new Date().toISOString().split('T')[0];
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       
@@ -149,9 +191,33 @@ export default function SearchResults() {
                 <Heart className={`h-5 w-5 ${isFavorite ? 'text-rose-500 fill-rose-500' : 'text-slate-400 hover:text-rose-500'}`} />
               </button>
             </h2>
-            <p className="text-sm text-slate-500">
-              Travel Date: <span className="font-semibold">{new Date(travelDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-            </p>
+            <div className="flex flex-wrap items-center gap-3 mt-1 text-slate-500 text-xs">
+              <span className="font-bold flex items-center gap-1"><Calendar className="h-3.5 w-3.5 text-brand-650" /> Date:</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handlePrevDay}
+                  disabled={travelDate <= todayStr}
+                  className="p-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 disabled:opacity-40 disabled:hover:bg-white cursor-pointer transition-colors"
+                  title="Previous Day"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </button>
+                <input
+                  type="date"
+                  value={travelDate}
+                  min={todayStr}
+                  onChange={(e) => handleDateChange(e.target.value)}
+                  className="border border-slate-200 rounded-md px-2 py-0.5 font-bold text-slate-700 focus:outline-none bg-white cursor-pointer"
+                />
+                <button
+                  onClick={handleNextDay}
+                  className="p-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 cursor-pointer transition-colors"
+                  title="Next Day"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

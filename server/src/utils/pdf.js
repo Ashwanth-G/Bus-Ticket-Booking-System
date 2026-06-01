@@ -1,10 +1,38 @@
 import PDFDocument from 'pdfkit';
+import QRCode from 'qrcode';
 
-export const generateTicketPDF = (booking, res) => {
+const getSeatLabel = (seatNumber, busType) => {
+  if (busType && busType.toLowerCase().includes('sleeper')) {
+    if (seatNumber <= 18) {
+      return `l-${seatNumber}`;
+    } else {
+      return `u-${seatNumber - 18}`;
+    }
+  }
+  return seatNumber.toString();
+};
+
+export const generateTicketPDF = async (booking, res) => {
   const doc = new PDFDocument({ margin: 50 });
 
   // Stream directly to response
   doc.pipe(res);
+
+  // Compile QR Code data
+  const qrData = JSON.stringify({
+    ref: booking.bookingReference,
+    route: `${booking.schedule.route.sourceCity} ➔ ${booking.schedule.route.destinationCity}`,
+    date: new Date(booking.schedule.departureDate).toLocaleDateString(),
+    time: booking.schedule.departureTime,
+    seats: booking.passengers.map(p => getSeatLabel(p.seatNumber, booking.schedule.bus.busType)).join(', ')
+  });
+
+  try {
+    const qrBuffer = await QRCode.toBuffer(qrData, { margin: 1, width: 70 });
+    doc.image(qrBuffer, 480, 15, { width: 70, height: 70 });
+  } catch (err) {
+    console.error('Error adding QR code to PDF:', err);
+  }
 
   // Styling Constants
   const primaryColor = '#1e3a8a'; // Dark Blue
@@ -61,7 +89,7 @@ export const generateTicketPDF = (booking, res) => {
 
   booking.passengers.forEach((passenger, index) => {
     doc.fillColor(textColor).fontSize(12);
-    doc.text(`${index + 1}. Name: ${passenger.passengerName} | Phone: ${passenger.passengerPhone} | Seat: ${passenger.seatNumber}`);
+    doc.text(`${index + 1}. Name: ${passenger.passengerName} | Phone: ${passenger.passengerPhone} | Seat: ${getSeatLabel(passenger.seatNumber, booking.schedule.bus.busType)}`);
   });
 
   doc.moveDown(2);

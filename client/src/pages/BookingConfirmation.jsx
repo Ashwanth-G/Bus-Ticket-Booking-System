@@ -7,6 +7,17 @@ import api from '../services/api.js';
 import toast from 'react-hot-toast';
 import { CheckCircle, Download, ArrowRight, Home } from 'lucide-react';
 
+const getSeatLabel = (seatNumber, busType) => {
+  if (busType && busType.toLowerCase().includes('sleeper')) {
+    if (seatNumber <= 18) {
+      return `l-${seatNumber}`;
+    } else {
+      return `u-${seatNumber - 18}`;
+    }
+  }
+  return seatNumber.toString();
+};
+
 export default function BookingConfirmation() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -62,7 +73,7 @@ export default function BookingConfirmation() {
     route: `${selectedSchedule.route.sourceCity} ➔ ${selectedSchedule.route.destinationCity}`,
     date: new Date(selectedSchedule.departureDate).toLocaleDateString(),
     time: selectedSchedule.departureTime,
-    seats: passengers.map(p => p.seatNumber).join(', ')
+    seats: passengers.map(p => getSeatLabel(p.seatNumber, selectedSchedule.bus.busType)).join(', ')
   });
 
   return (
@@ -100,7 +111,7 @@ export default function BookingConfirmation() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Seats Booked</span>
-                <p className="text-sm font-bold text-slate-700">{passengers.map(p => p.seatNumber).join(', ')}</p>
+                <p className="text-sm font-bold text-slate-700">{passengers.map(p => getSeatLabel(p.seatNumber, selectedSchedule.bus.busType)).join(', ')}</p>
               </div>
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Amount Paid</span>

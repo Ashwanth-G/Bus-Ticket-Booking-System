@@ -76,7 +76,7 @@ async function main() {
   // 3. Create 20 Buses
   console.log('Seeding 20 buses...');
   const operators = ['Volvo Transports', 'GreenLine Express', 'Skyline Travels', 'National Travels', 'Royal Cruiser'];
-  const busTypes = ['AC Sleeper', 'Non AC', 'Volvo', 'Semi Sleeper'];
+  const busTypes = ['AC Sleeper', 'Non AC', 'Volvo', 'Semi Sleeper', 'AC Seater/Sleeper'];
   const amenitiesList = [
     'WiFi, Charging Point, Water Bottle, Blanket',
     'Charging Point, Reading Light',
@@ -88,7 +88,7 @@ async function main() {
   for (let i = 1; i <= 20; i++) {
     const busType = busTypes[i % busTypes.length];
     let totalSeats = 40;
-    if (busType === 'AC Sleeper') totalSeats = 30; // Sleeper buses typically have fewer berths
+    if (busType === 'AC Sleeper' || busType === 'AC Seater/Sleeper') totalSeats = 36; // 6 rows * 3 berths/row * 2 decks = 36 berths
     
     const bus = await prisma.bus.create({
       data: {
@@ -139,23 +139,19 @@ async function main() {
   }
   console.log(`Seeded ${routes.length} routes.`);
 
-  // 5. Create 100 Schedules
-  console.log('Seeding 100 schedules...');
+  // 5. Create Schedules
+  console.log('Seeding schedules for all routes...');
   const schedules = [];
   const times = ['06:00', '08:30', '13:00', '17:15', '21:30', '23:00'];
   const baseFares = [450, 650, 800, 1200, 1500];
 
-  // We want to generate schedules covering:
-  // - Past dates (to show booking history)
-  // - Today (to test same-day booking validations)
-  // - Future dates (to show search results and book)
-  
   const dates = [];
   // Today's Date (Midnight UTC)
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
   // Past dates: -3 days, -1 day
+  // Future dates: today, today + 1, ..., today + 7
   for (let d = -3; d <= 7; d++) {
     const date = new Date(today);
     date.setUTCDate(today.getUTCDate() + d);
@@ -163,37 +159,44 @@ async function main() {
   }
 
   let scheduleCount = 0;
-  // We'll distribute schedules across our routes and buses
-  for (let d = 0; d < dates.length; d++) {
-    const travelDate = dates[d];
+  // Loop over all routes to ensure every route has multiple schedules
+  for (let r = 0; r < routes.length; r++) {
+    const route = routes[r];
     
-    for (let r = 0; r < 10; r++) { // 10 routes per day
-      if (scheduleCount >= 100) break;
-
-      const route = routes[r % routes.length];
-      const bus = buses[scheduleCount % buses.length];
-      const depTime = times[scheduleCount % times.length];
+    // For each route, generate schedules on all dates
+    for (let d = 0; d < dates.length; d++) {
+      const travelDate = dates[d];
       
-      // Calculate arrival time roughly (add 6 hours to departure)
-      const [h, m] = depTime.split(':').map(Number);
-      const arrH = (h + 6) % 24;
-      const arrTime = `${String(arrH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-      
-      const fare = baseFares[scheduleCount % baseFares.length] + (bus.busType.includes('AC') ? 300 : 0);
+      // Generate 2 schedules per day per route (morning and evening)
+      for (let sIdx = 0; sIdx < 2; sIdx++) {
+        const bus = buses[scheduleCount % buses.length];
+        
+        // Pick departure time
+        const depTime = sIdx === 0 
+          ? times[scheduleCount % 3] // morning
+          : times[3 + (scheduleCount % 3)]; // evening
+        
+        // Calculate arrival time roughly (add 6 hours to departure)
+        const [h, m] = depTime.split(':').map(Number);
+        const arrH = (h + 6) % 24;
+        const arrTime = `${String(arrH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        
+        const fare = baseFares[scheduleCount % baseFares.length] + (bus.busType.includes('AC') ? 300 : 0);
 
-      const schedule = await prisma.schedule.create({
-        data: {
-          busId: bus.id,
-          routeId: route.id,
-          departureDate: travelDate,
-          departureTime: depTime,
-          arrivalTime: arrTime,
-          availableSeats: bus.totalSeats,
-          fare: parseFloat(fare.toFixed(2)),
-        },
-      });
-      schedules.push(schedule);
-      scheduleCount++;
+        const schedule = await prisma.schedule.create({
+          data: {
+            busId: bus.id,
+            routeId: route.id,
+            departureDate: travelDate,
+            departureTime: depTime,
+            arrivalTime: arrTime,
+            availableSeats: bus.totalSeats,
+            fare: parseFloat(fare.toFixed(2)),
+          },
+        });
+        schedules.push(schedule);
+        scheduleCount++;
+      }
     }
   }
   console.log(`Seeded ${schedules.length} schedules.`);

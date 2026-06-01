@@ -6,6 +6,17 @@ import {
   Calendar, Bus, MapPin, Download, Trash2, ShieldAlert, AlertCircle, Loader2 
 } from 'lucide-react';
 
+const getSeatLabel = (seatNumber, busType) => {
+  if (busType && busType.toLowerCase().includes('sleeper')) {
+    if (seatNumber <= 18) {
+      return `l-${seatNumber}`;
+    } else {
+      return `u-${seatNumber - 18}`;
+    }
+  }
+  return seatNumber.toString();
+};
+
 export default function MyBookings() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
@@ -134,7 +145,7 @@ export default function MyBookings() {
                   <div className="flex flex-wrap gap-2">
                     {booking.passengers.map(p => (
                       <span key={p.id} className="text-xs bg-slate-100 border border-slate-200/60 text-slate-650 px-2.5 py-1 rounded-lg">
-                        {p.passengerName} (Seat <span className="font-extrabold text-brand-600">{p.seatNumber}</span>)
+                        {p.passengerName} (Seat <span className="font-extrabold text-brand-600">{getSeatLabel(p.seatNumber, booking.schedule.bus.busType)}</span>)
                       </span>
                     ))}
                   </div>

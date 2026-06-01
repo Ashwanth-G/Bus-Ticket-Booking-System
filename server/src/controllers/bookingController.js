@@ -312,7 +312,7 @@ export const downloadTicketPDF = async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename=ticket-${booking.bookingReference}.pdf`);
 
     const { generateTicketPDF } = await import('../utils/pdf.js');
-    generateTicketPDF(booking, res);
+    await generateTicketPDF(booking, res);
   } catch (error) {
     console.error('Download PDF error:', error);
     return res.status(500).json({ message: 'Internal server error generating PDF.' });

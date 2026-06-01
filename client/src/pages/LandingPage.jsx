@@ -12,9 +12,9 @@ const CITIES = ['Bangalore', 'Mumbai', 'Pune', 'Delhi', 'Jaipur', 'Chennai', 'Hy
 
 const POPULAR_ROUTES = [
   { source: 'Bangalore', destination: 'Goa', distance: '560 km', duration: '10h 30m', image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&auto=format&fit=crop&q=60' },
-  { source: 'Mumbai', destination: 'Pune', distance: '150 km', duration: '03h 00m', image: 'https://images.unsplash.com/photo-1602773229774-60be7870fa3f?w=500&auto=format&fit=crop&q=60' },
-  { source: 'Delhi', destination: 'Jaipur', distance: '270 km', duration: '05h 30m', image: 'https://images.unsplash.com/photo-1477584305590-38772bdbb5c0?w=500&auto=format&fit=crop&q=60' },
-  { source: 'Hyderabad', destination: 'Bangalore', distance: '570 km', duration: '09h 00m', image: 'https://images.unsplash.com/photo-1596422846543-b5f64861e939?w=500&auto=format&fit=crop&q=60' },
+  { source: 'Mumbai', destination: 'Pune', distance: '150 km', duration: '03h 00m', image: 'https://thfvnext.bing.com/th/id/OIP.F-HfGyEyUbXPCE-k8aVjtAHaE9?w=230&h=180&c=7&r=0&o=7&cb=thfvnextfalcon&pid=1.7&rm=3' },
+  { source: 'Delhi', destination: 'Jaipur', distance: '270 km', duration: '05h 30m', image: 'https://www.bing.com/th/id/OIP.IBpfsajRWYjxoq99LYfXngHaE9?w=193&h=135&c=8&rs=1&qlt=90&o=6&pid=3.1&rm=2' },
+  { source: 'Hyderabad', destination: 'Bangalore', distance: '570 km', duration: '09h 00m', image: 'https://www.bing.com/th/id/OIP.evK-FKn4MD8hJbt-vmElIgHaEw?w=193&h=135&c=8&rs=1&qlt=90&o=6&pid=3.1&rm=2' },
 ];
 
 export default function LandingPage() {
