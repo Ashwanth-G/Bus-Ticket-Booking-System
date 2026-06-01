@@ -28,7 +28,10 @@ jobs:
 
       - run: npx prisma generate --schema=src/prisma/schema.prisma
 
-      - run: npm test
+      - name: Run Tests
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npm test
 
   frontend:
     runs-on: ubuntu-latest
