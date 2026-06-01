@@ -55,6 +55,9 @@ jobs:
       - name: Push Schema to Database
         run: npx prisma db push --schema=src/prisma/schema.prisma
 
+      - name: Seed Database
+        run: npm run db:seed
+
       - name: Run Backend Tests
         run: npm test
 
