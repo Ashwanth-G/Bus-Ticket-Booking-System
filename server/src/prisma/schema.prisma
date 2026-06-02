@@ -1,20 +1,10 @@
-datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
-enum Role {
-  USER
-  ADMIN
-}
-
-enum BookingStatus {
-  CONFIRMED
-  CANCELLED
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -28,12 +18,12 @@ model User {
   isActive        Boolean          @default(true)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
-  bookings        Booking[]
   auditLogs       AuditLog[]
-  reviews         Review[]
+  bookings        Booking[]
   favoriteRoutes  FavoriteRoute[]
-  searchHistories SearchHistory[]
   recentlyViewed  RecentlyViewed[]
+  reviews         Review[]
+  searchHistories SearchHistory[]
 
   @@index([email])
   @@index([phone])
@@ -44,13 +34,13 @@ model Bus {
   busNumber      String           @unique
   busName        String
   operatorName   String
-  busType        String           // e.g. "AC Sleeper", "Non AC", "Volvo", "Semi Sleeper"
+  busType        String
   totalSeats     Int              @default(40)
-  amenities      String           // comma-separated values (e.g. "WiFi, AC, Charging Point")
+  amenities      String
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
-  schedules      Schedule[]
   recentlyViewed RecentlyViewed[]
+  schedules      Schedule[]
 }
 
 model Route {
@@ -58,31 +48,31 @@ model Route {
   sourceCity      String
   destinationCity String
   distance        Float
-  duration        String          // e.g. "05h 30m"
+  duration        String
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
-  schedules       Schedule[]
   favoriteRoutes  FavoriteRoute[]
+  schedules       Schedule[]
 
   @@unique([sourceCity, destinationCity])
   @@index([sourceCity, destinationCity])
 }
 
 model Schedule {
-  id             Int             @id @default(autoincrement())
+  id             Int       @id @default(autoincrement())
   busId          Int
   routeId        Int
-  departureDate  DateTime        // Date only
-  departureTime  String          // e.g. "08:30"
-  arrivalTime    String          // e.g. "14:00"
+  departureDate  DateTime
+  departureTime  String
+  arrivalTime    String
   availableSeats Int
   fare           Float
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  bus            Bus             @relation(fields: [busId], references: [id], onDelete: Cascade)
-  route          Route           @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   bookings       Booking[]
   reviews        Review[]
+  bus            Bus       @relation(fields: [busId], references: [id], onDelete: Cascade)
+  route          Route     @relation(fields: [routeId], references: [id], onDelete: Cascade)
 
   @@index([busId])
   @@index([routeId])
@@ -91,15 +81,15 @@ model Schedule {
 
 model Booking {
   id               Int           @id @default(autoincrement())
-  bookingReference String        @unique // e.g. SBP-2026-00001
+  bookingReference String        @unique
   userId           Int
   scheduleId       Int
   bookingStatus    BookingStatus @default(CONFIRMED)
   totalFare        Float
   bookedAt         DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
-  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   schedule         Schedule      @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   passengers       Passenger[]
   payment          Payment?
 
@@ -109,12 +99,12 @@ model Booking {
 }
 
 model Passenger {
-  id             Int      @id @default(autoincrement())
+  id             Int     @id @default(autoincrement())
   bookingId      Int
   passengerName  String
   passengerPhone String
-  seatNumber     Int      // Explicit seat selection
-  booking        Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  seatNumber     Int
+  booking        Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@index([bookingId])
 }
@@ -123,8 +113,8 @@ model Payment {
   id            Int      @id @default(autoincrement())
   bookingId     Int      @unique
   amount        Float
-  paymentMethod String   // e.g. "Card", "UPI", "NetBanking"
-  paymentStatus String   // e.g. "PAID", "FAILED"
+  paymentMethod String
+  paymentStatus String
   transactionId String   @unique
   createdAt     DateTime @default(now())
   booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
@@ -136,7 +126,7 @@ model AuditLog {
   userId    Int?
   details   String   @db.Text
   createdAt DateTime @default(now())
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user      User?    @relation(fields: [userId], references: [id])
 
   @@index([userId])
 }
@@ -145,11 +135,11 @@ model Review {
   id         Int      @id @default(autoincrement())
   userId     Int
   scheduleId Int
-  rating     Int      // 1 to 5 stars
+  rating     Int
   comment    String   @db.Text
   createdAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([scheduleId])
@@ -160,10 +150,11 @@ model FavoriteRoute {
   userId    Int
   routeId   Int
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   route     Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, routeId])
+  @@index([routeId], map: "FavoriteRoute_routeId_fkey")
 }
 
 model SearchHistory {
@@ -178,12 +169,23 @@ model SearchHistory {
 }
 
 model RecentlyViewed {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  busId     Int
-  viewedAt  DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bus       Bus      @relation(fields: [busId], references: [id], onDelete: Cascade)
+  id       Int      @id @default(autoincrement())
+  userId   Int
+  busId    Int
+  viewedAt DateTime @default(now())
+  bus      Bus      @relation(fields: [busId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, busId])
+  @@index([busId], map: "RecentlyViewed_busId_fkey")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
 }
